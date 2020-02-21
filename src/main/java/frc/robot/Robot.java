@@ -19,15 +19,18 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
 public class Robot extends TimedRobot {
-  private Joystick mainJoystick;
-  private Joystick secondaryJoystick;
-
+  /*
+    Configuration
+  */
   private static int driveStyle = 0;
 
+  // Encoders
   private static final double driveEncoderConversionRatio = (6 * Math.PI) / 10.75;
 
+  // PWM Ports
   private static final int intakeMotorPort = 0;
 
+  // CAN IDs
   private static final int conveyorID = 30;
   private static final int climberID = 31;
 
@@ -39,6 +42,14 @@ public class Robot extends TimedRobot {
   private static final int leftFrontID = 53;
   private static final int rightFrontID = 54;
 
+  /*
+    Components
+  */
+  // Joysticks
+  private Joystick mainJoystick;
+  private Joystick secondaryJoystick;
+
+  // Motor Controllers
   private Talon intakeMotor;
 
   private VictorSPX conveyorMotor;
@@ -52,33 +63,42 @@ public class Robot extends TimedRobot {
   private CANSparkMax leftFrontMotor;
   private CANSparkMax rightFrontMotor;
 
+  // Encoders
   private CANEncoder driveEncoder;
 
   @Override
   public void robotInit() {
+    // Joysticks
+    mainJoystick = new Joystick(0);
+    secondaryJoystick = new Joystick(1);
+
+    // Motor Controllers
+    intakeMotor = new Talon(intakeMotorPort);
+
+    conveyorMotor = new VictorSPX(conveyorID);
+    climberMotor = new VictorSPX(climberID);
+
+    rightShooterMotor = new CANSparkMax(rightShooterID, MotorType.kBrushless);
+    leftShooterMotor = new CANSparkMax(leftShooterID, MotorType.kBrushless);
+
     leftRearMotor = new CANSparkMax(leftRearID, MotorType.kBrushless);
     rightRearMotor = new CANSparkMax(rightRearID, MotorType.kBrushless);
     leftFrontMotor = new CANSparkMax(leftFrontID, MotorType.kBrushless);
     rightFrontMotor = new CANSparkMax(rightFrontID, MotorType.kBrushless);
 
-    conveyorMotor = new VictorSPX(conveyorID);
-    climberMotor = new VictorSPX(climberID);
-
-    intakeMotor = new Talon(intakeMotorPort);
-
-    rightShooterMotor = new CANSparkMax(rightShooterID, MotorType.kBrushless);
-    leftShooterMotor = new CANSparkMax(leftShooterID, MotorType.kBrushless);
-
-    mainJoystick = new Joystick(0);
-    secondaryJoystick = new Joystick(1);
-
+    // Encoders
     driveEncoder = leftRearMotor.getEncoder();
     driveEncoder.setPositionConversionFactor(driveEncoderConversionRatio);
   }
 
   @Override
+  public void autonomousInit() {
+    
+  }
+
+  @Override
   public void autonomousPeriodic() {
-    System.out.println(driveEncoder.getPosition());
+    
   }
 
   @Override
@@ -92,6 +112,9 @@ public class Robot extends TimedRobot {
     rightFrontMotor.set(mainJoystick.getRawAxis(1) / 2 + mainJoystick.getRawAxis(4) / 3);
     rightRearMotor.set(mainJoystick.getRawAxis(1) / 2 + mainJoystick.getRawAxis(4) / 3);
 
+    /*
+      Split code for 2 different drive styles
+    */
     if(driveStyle == 0){
       /*
         Sarah's Control Scheme
