@@ -8,6 +8,7 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.wpilibj.TimedRobot;
 
@@ -18,13 +19,17 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
 public class Robot extends TimedRobot {
-  private ConjoinedController controller;
+  private Joystick mainJoystick;
+  private Joystick secondaryJoystick;
+
+  private static int driveStyle = 0;
 
   private static final double driveEncoderConversionRatio = (6 * Math.PI) / 10.75;
 
   private static final int intakeMotorPort = 0;
 
   private static final int transporterID = 30;
+  private static final int climberID = 31;
 
   private static final int rightShooterID = 40;
   private static final int leftShooterID = 41;
@@ -37,6 +42,7 @@ public class Robot extends TimedRobot {
   private Talon intakeMotor;
 
   private VictorSPX transporterMotor;
+  private VictorSPX climberMotor;
 
   private CANSparkMax rightShooterMotor;
   private CANSparkMax leftShooterMotor;
@@ -48,8 +54,6 @@ public class Robot extends TimedRobot {
 
   private CANEncoder driveEncoder;
 
-  private DigitalInput intakeSensor;
-
   @Override
   public void robotInit() {
     leftRearMotor = new CANSparkMax(leftRearID, MotorType.kBrushless);
@@ -58,15 +62,15 @@ public class Robot extends TimedRobot {
     rightFrontMotor = new CANSparkMax(rightFrontID, MotorType.kBrushless);
 
     transporterMotor = new VictorSPX(transporterID);
+    climberMotor = new VictorSPX(climberID);
 
     intakeMotor = new Talon(intakeMotorPort);
 
     rightShooterMotor = new CANSparkMax(rightShooterID, MotorType.kBrushless);
     leftShooterMotor = new CANSparkMax(leftShooterID, MotorType.kBrushless);
 
-    controller = new ConjoinedController(0, 1);
-
-    intakeSensor = new DigitalInput(0);
+    mainJoystick = new Joystick(0);
+    secondaryJoystick = new Joystick(1);
 
     driveEncoder = leftRearMotor.getEncoder();
     driveEncoder.setPositionConversionFactor(driveEncoderConversionRatio);
@@ -79,8 +83,66 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopPeriodic() {
-    System.out.println(intakeSensor.get());
+    if(driveStyle == 0){
+      if(secondaryJoystick.getRawButton(1)){
+        rightShooterMotor.set(-1);
+        leftShooterMotor.set(1);
+      } else {
+        rightShooterMotor.set(0);
+        leftShooterMotor.set(0);
+      }
 
+      if(secondaryJoystick.getRawButton(3)){
+        transporterMotor.set(VictorSPXControlMode.PercentOutput, .1);
+      } else if(secondaryJoystick.getRawButton(2)) {
+        transporterMotor.set(VictorSPXControlMode.PercentOutput,-.1);
+      } else {
+        transporterMotor.set(VictorSPXControlMode.PercentOutput, 0);
+      }
+
+      if(secondaryJoystick.getRawButton(5)){
+        intakeMotor.set(.5);
+      } else if(secondaryJoystick.getRawButton(6)) {
+        intakeMotor.set(-.5);
+      } else {
+        intakeMotor.set(0);
+      }
+
+      if(secondaryJoystick.getRawAxis(2) > .9){
+        climberMotor.set(VictorSPXControlMode.PercentOutput, .5);
+      } else if (secondaryJoystick.getRawAxis(3) > .9){
+        climberMotor.set(VictorSPXControlMode.PercentOutput, -.5);
+      } else {
+        climberMotor.set(VictorSPXControlMode.PercentOutput, 0);
+      }
+
+
+    } else {
+      if(secondaryJoystick.getRawButton(5)){
+        rightShooterMotor.set(-1);
+        leftShooterMotor.set(1);
+      } else {
+        rightShooterMotor.set(0);
+        leftShooterMotor.set(0);
+      }
+
+      if(secondaryJoystick.getRawButton(3)){
+        transporterMotor.set(VictorSPXControlMode.PercentOutput, .1);
+      } else if(secondaryJoystick.getRawButton(2)){
+        transporterMotor.set(VictorSPXControlMode.PercentOutput, -.1);
+      } else {
+        transporterMotor.set(VictorSPXControlMode.PercentOutput, 0);
+      }
+
+      if(secondaryJoystick.getRawButton(6)){
+        intakeMotor.set(.5);
+      } else if(secondaryJoystick.getRawButton(1)){
+        intakeMotor.set(-.5);
+      } else {
+        intakeMotor.set(0);
+      }
+    }
+    /*
     // Drive
     leftFrontMotor.set(-controller.getRawAxis(1) / 2 + controller.getRawAxis(4) / 3);
     leftRearMotor.set(-controller.getRawAxis(1) / 2 + controller.getRawAxis(4) / 3);
@@ -90,32 +152,33 @@ public class Robot extends TimedRobot {
 
     // Shooter
     if (controller.getRawButton(1)) {
-      rightShooterMotor.set(-.5);
-      leftShooterMotor.set(.5);
+      rightShooterMotor.set(-1);
+      leftShooterMotor.set(1);
     } else {
       rightShooterMotor.set(0);
       leftShooterMotor.set(0);
     }
 
     // Intake
-    if (controller.getRawButton(2)) { // In
+    if (controller.getRawButton(5)) { // In
       intakeMotor.set(-.5);
-      transporterMotor.set(VictorSPXControlMode.PercentOutput, 1);
-    } else if (controller.getRawButton(3)) { // Out
+      transporterMotor.set(VictorSPXControlMode.PercentOutput, .1);
+    } else if (controller.getRawButton(6)) { // Out
       intakeMotor.set(.5);
-      transporterMotor.set(VictorSPXControlMode.PercentOutput, -1);
+      transporterMotor.set(VictorSPXControlMode.PercentOutput, -.1);
     } else {
       intakeMotor.set(0);
       transporterMotor.set(VictorSPXControlMode.PercentOutput, 0);
     }
 
     // Transporter
-    if (controller.getRawButton(5)) { // Up
+    if (controller.getRawButton(3)) { // Up
       transporterMotor.set(VictorSPXControlMode.PercentOutput, 0.5);
-    } else if (controller.getRawButton(6)) { // Down
+    } else if (controller.getRawButton(2)) { // Down
       transporterMotor.set(VictorSPXControlMode.PercentOutput, -0.5);
     } else {
-     // transporterMotor.set(VictorSPXControlMode.PercentOutput, 0);
+      transporterMotor.set(VictorSPXControlMode.PercentOutput, 0);
     }
+    */
   }
 }
