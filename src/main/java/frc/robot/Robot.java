@@ -7,7 +7,7 @@
 
 package frc.robot;
 
-import edu.wpi.first.wpilibj.DigitalInput;
+//import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -28,7 +28,7 @@ public class Robot extends TimedRobot {
 
   private static final int intakeMotorPort = 0;
 
-  private static final int transporterID = 30;
+  private static final int conveyorID = 30;
   private static final int climberID = 31;
 
   private static final int rightShooterID = 40;
@@ -41,7 +41,7 @@ public class Robot extends TimedRobot {
 
   private Talon intakeMotor;
 
-  private VictorSPX transporterMotor;
+  private VictorSPX conveyorMotor;
   private VictorSPX climberMotor;
 
   private CANSparkMax rightShooterMotor;
@@ -61,7 +61,7 @@ public class Robot extends TimedRobot {
     leftFrontMotor = new CANSparkMax(leftFrontID, MotorType.kBrushless);
     rightFrontMotor = new CANSparkMax(rightFrontID, MotorType.kBrushless);
 
-    transporterMotor = new VictorSPX(transporterID);
+    conveyorMotor = new VictorSPX(conveyorID);
     climberMotor = new VictorSPX(climberID);
 
     intakeMotor = new Talon(intakeMotorPort);
@@ -83,7 +83,21 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopPeriodic() {
+    /*
+      Robot Drive Code
+    */
+    leftFrontMotor.set(-mainJoystick.getRawAxis(1) / 2 + mainJoystick.getRawAxis(4) / 3);
+    leftRearMotor.set(-mainJoystick.getRawAxis(1) / 2 + mainJoystick.getRawAxis(4) / 3);
+
+    rightFrontMotor.set(mainJoystick.getRawAxis(1) / 2 + mainJoystick.getRawAxis(4) / 3);
+    rightRearMotor.set(mainJoystick.getRawAxis(1) / 2 + mainJoystick.getRawAxis(4) / 3);
+
     if(driveStyle == 0){
+      /*
+        Sarah's Control Scheme
+      */
+
+      // Shooter
       if(secondaryJoystick.getRawButton(1)){
         rightShooterMotor.set(-1);
         leftShooterMotor.set(1);
@@ -92,14 +106,16 @@ public class Robot extends TimedRobot {
         leftShooterMotor.set(0);
       }
 
+      // Conveyor
       if(secondaryJoystick.getRawButton(3)){
-        transporterMotor.set(VictorSPXControlMode.PercentOutput, .1);
+        conveyorMotor.set(VictorSPXControlMode.PercentOutput, .1);
       } else if(secondaryJoystick.getRawButton(2)) {
-        transporterMotor.set(VictorSPXControlMode.PercentOutput,-.1);
+        conveyorMotor.set(VictorSPXControlMode.PercentOutput,-.1);
       } else {
-        transporterMotor.set(VictorSPXControlMode.PercentOutput, 0);
+        conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0);
       }
 
+      // Intake
       if(secondaryJoystick.getRawButton(5)){
         intakeMotor.set(.5);
       } else if(secondaryJoystick.getRawButton(6)) {
@@ -108,16 +124,20 @@ public class Robot extends TimedRobot {
         intakeMotor.set(0);
       }
 
+      // Climber
       if(secondaryJoystick.getRawAxis(2) > .9){
-        climberMotor.set(VictorSPXControlMode.PercentOutput, .5);
+        climberMotor.set(VictorSPXControlMode.PercentOutput, 1);
       } else if (secondaryJoystick.getRawAxis(3) > .9){
-        climberMotor.set(VictorSPXControlMode.PercentOutput, -.5);
+        climberMotor.set(VictorSPXControlMode.PercentOutput, -1);
       } else {
         climberMotor.set(VictorSPXControlMode.PercentOutput, 0);
       }
-
-
     } else {
+      /*
+        Rachel's Control Scheme
+      */
+
+      // Shooter
       if(secondaryJoystick.getRawButton(5)){
         rightShooterMotor.set(-1);
         leftShooterMotor.set(1);
@@ -126,14 +146,16 @@ public class Robot extends TimedRobot {
         leftShooterMotor.set(0);
       }
 
+      // Conveyor
       if(secondaryJoystick.getRawButton(3)){
-        transporterMotor.set(VictorSPXControlMode.PercentOutput, .1);
+        conveyorMotor.set(VictorSPXControlMode.PercentOutput, .1);
       } else if(secondaryJoystick.getRawButton(2)){
-        transporterMotor.set(VictorSPXControlMode.PercentOutput, -.1);
+        conveyorMotor.set(VictorSPXControlMode.PercentOutput, -.1);
       } else {
-        transporterMotor.set(VictorSPXControlMode.PercentOutput, 0);
+        conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0);
       }
 
+      // Intake
       if(secondaryJoystick.getRawButton(6)){
         intakeMotor.set(.5);
       } else if(secondaryJoystick.getRawButton(1)){
@@ -141,44 +163,15 @@ public class Robot extends TimedRobot {
       } else {
         intakeMotor.set(0);
       }
-    }
-    /*
-    // Drive
-    leftFrontMotor.set(-controller.getRawAxis(1) / 2 + controller.getRawAxis(4) / 3);
-    leftRearMotor.set(-controller.getRawAxis(1) / 2 + controller.getRawAxis(4) / 3);
 
-    rightFrontMotor.set(controller.getRawAxis(1) / 2 + controller.getRawAxis(4) / 3);
-    rightRearMotor.set(controller.getRawAxis(1) / 2 + controller.getRawAxis(4) / 3);
-
-    // Shooter
-    if (controller.getRawButton(1)) {
-      rightShooterMotor.set(-1);
-      leftShooterMotor.set(1);
-    } else {
-      rightShooterMotor.set(0);
-      leftShooterMotor.set(0);
+      // Climber
+      if(secondaryJoystick.getRawAxis(2) > .9){
+        climberMotor.set(VictorSPXControlMode.PercentOutput, 1);
+      } else if (secondaryJoystick.getRawAxis(3) > .9){
+        climberMotor.set(VictorSPXControlMode.PercentOutput, -1);
+      } else {
+        climberMotor.set(VictorSPXControlMode.PercentOutput, 0);
+      }
     }
-
-    // Intake
-    if (controller.getRawButton(5)) { // In
-      intakeMotor.set(-.5);
-      transporterMotor.set(VictorSPXControlMode.PercentOutput, .1);
-    } else if (controller.getRawButton(6)) { // Out
-      intakeMotor.set(.5);
-      transporterMotor.set(VictorSPXControlMode.PercentOutput, -.1);
-    } else {
-      intakeMotor.set(0);
-      transporterMotor.set(VictorSPXControlMode.PercentOutput, 0);
-    }
-
-    // Transporter
-    if (controller.getRawButton(3)) { // Up
-      transporterMotor.set(VictorSPXControlMode.PercentOutput, 0.5);
-    } else if (controller.getRawButton(2)) { // Down
-      transporterMotor.set(VictorSPXControlMode.PercentOutput, -0.5);
-    } else {
-      transporterMotor.set(VictorSPXControlMode.PercentOutput, 0);
-    }
-    */
   }
 }
