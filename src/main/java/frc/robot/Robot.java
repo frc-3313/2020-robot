@@ -7,7 +7,9 @@
 
 package frc.robot;
 
+import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DigitalInput;
 //import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Joystick;
@@ -24,8 +26,8 @@ import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
 public class Robot extends TimedRobot {
   /*
-    Configuration
-  */
+   * Configuration
+   */
 
   // Encoders
   private static final double driveEncoderConversionRatio = (6 * Math.PI) / 10.75;
@@ -35,6 +37,7 @@ public class Robot extends TimedRobot {
 
   // PWM Ports
   private static final int intakeMotorPort = 0;
+  private static final int climberLockMotorPort = 1;
 
   // CAN IDs
   private static final int conveyorID = 30;
@@ -49,8 +52,8 @@ public class Robot extends TimedRobot {
   private static final int rightFrontID = 54;
 
   /*
-    Components
-  */
+   * Components
+   */
   // Joysticks
   private Joystick mainJoystick;
   private Joystick secondaryJoystick;
@@ -60,6 +63,7 @@ public class Robot extends TimedRobot {
 
   // Motor Controllers
   private Talon intakeMotor;
+  private Talon climberLockMotor;
 
   private VictorSPX conveyorMotor;
   private CANSparkMax climberMotor;
@@ -79,6 +83,14 @@ public class Robot extends TimedRobot {
   private ShuffleboardTab sbTab;
   private NetworkTableEntry sbDriveTypeEntry;
 
+  // Limelight
+  private NetworkTable limelightTable;
+
+  // Misc
+  int ticksToConveyorStop = 0;
+  int currentStoredBalls = 0;
+  boolean updatedBallCount = false;
+
   @Override
   public void robotInit() {
     // Joysticks
@@ -90,6 +102,7 @@ public class Robot extends TimedRobot {
 
     // Motor Controllers
     intakeMotor = new Talon(intakeMotorPort);
+    climberLockMotor = new Talon(climberLockMotorPort);
 
     conveyorMotor = new VictorSPX(conveyorID);
     climberMotor = new CANSparkMax(climberID, MotorType.kBrushless);
@@ -108,131 +121,124 @@ public class Robot extends TimedRobot {
 
     // Shuffleboard
     sbTab = Shuffleboard.getTab("Drive");
-    sbDriveTypeEntry = sbTab.add("Secondary Driver Type", "sarah").getEntry();
+    sbDriveTypeEntry = sbTab.add("Current Balls", 0).getEntry();
+
+    // Limelight
+    limelightTable = NetworkTableInstance.getDefault().getTable("limelight");
   }
 
   @Override
   public void autonomousInit() {
-    
+    driveEncoder.setPosition(0);
   }
 
   @Override
   public void autonomousPeriodic() {
-    
+    leftFrontMotor.set(-0.05);
+    leftRearMotor.set(-0.05);
+
+    rightFrontMotor.set(0.05);
+    rightRearMotor.set(0.05);
+
+    System.out.println(driveEncoder.getPosition());
   }
 
   @Override
   public void teleopPeriodic() {
     /*
-      Robot Drive Code
-    */
+     * Shuffleboard
+     */
+    sbDriveTypeEntry.setNumber(currentStoredBalls);
+
+    /*
+     * Robot Drive Code
+     */
     leftFrontMotor.set(-mainJoystick.getRawAxis(1) / 2 + mainJoystick.getRawAxis(4) / 3);
     leftRearMotor.set(-mainJoystick.getRawAxis(1) / 2 + mainJoystick.getRawAxis(4) / 3);
 
     rightFrontMotor.set(mainJoystick.getRawAxis(1) / 2 + mainJoystick.getRawAxis(4) / 3);
     rightRearMotor.set(mainJoystick.getRawAxis(1) / 2 + mainJoystick.getRawAxis(4) / 3);
 
-    /*
-      Split code for 2 different drive styles
-    */
-    if(sbDriveTypeEntry.getString("sarah").equals("sarah")){
-      /*
-        Sarah's Control Scheme
-      */
+    // Shooter
+    if (secondaryJoystick.getRawButton(1)) {
+      rightShooterMotor.set(-.5);
+      leftShooterMotor.set(.5);
+      conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0.4);
 
-      // Shooter
-      if(secondaryJoystick.getRawButton(1)){
-        rightShooterMotor.set(-.75);
-        leftShooterMotor.set(.75);
-        conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0.3);
-      } else {
-        rightShooterMotor.set(0);
-        leftShooterMotor.set(0);
-        conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0);
-      }
+      currentStoredBalls = 0;
+    } else {
+      rightShooterMotor.set(0);
+      leftShooterMotor.set(0);
+      conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0);
+    }
 
-      // Conveyor
-      /*
-      if(secondaryJoystick.getRawButton(3)){
-        conveyorMotor.set(VictorSPXControlMode.PercentOutput, .5);
-      } else if(secondaryJoystick.getRawButton(2)) {
-        conveyorMotor.set(VictorSPXControlMode.PercentOutput, -.5);
-      } else {
-        conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0);
-      }
-      */
+    // Intake
+    if (secondaryJoystick.getRawButton(5)) {
+      intakeMotor.set(.5);
+    } else if (secondaryJoystick.getRawButton(6)) {
+      if (intakeSensor.get()) {
+        ticksToConveyorStop = 2;
+        intakeMotor.set(0);
 
-      // Intake
-      if(secondaryJoystick.getRawButton(5)){
-        intakeMotor.set(.5);
-
-        
-      } else if(secondaryJoystick.getRawButton(6)) {
-        intakeMotor.set(-.5);
-
-        if(intakeSensor.get()) {
-          conveyorMotor.set(VictorSPXControlMode.PercentOutput, .5);
+        if(currentStoredBalls == 3){
+          ticksToConveyorStop = 1;
         } else {
-          conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0);
+          if(!updatedBallCount){
+            currentStoredBalls++;
+            updatedBallCount = true;
+          }
         }
       } else {
+        conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0);
+        updatedBallCount = false;
+
+        if(currentStoredBalls == 3){
+          intakeMotor.set(0);
+        } else {
+          intakeMotor.set(-.5);
+        }
+      }
+
+      if (ticksToConveyorStop > 0) {
         intakeMotor.set(0);
-      }
-
-      // Climber
-      if(secondaryJoystick.getRawAxis(2) > .9){
-        climberMotor.set(1);
-      } else if (secondaryJoystick.getRawAxis(3) > .9){
-        climberMotor.set(-1);
+        conveyorMotor.set(VictorSPXControlMode.PercentOutput, .5);
+        ticksToConveyorStop--;
       } else {
-        climberMotor.set(0);
-      }
-
-      if(secondaryJoystick.getRawButton(2)){
-        conveyorMotor.set(VictorSPXControlMode.PercentOutput, -.5);
+        conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0);
       }
     } else {
-      /*
-        Rachel's Control Scheme
-      */
+      intakeMotor.set(0);
+    }
 
-      // Shooter
-      if(secondaryJoystick.getRawButton(5)){
-        rightShooterMotor.set(-1);
-        leftShooterMotor.set(1);
-        conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0.75);
-      } else {
-        rightShooterMotor.set(0);
-        leftShooterMotor.set(0);
-        conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0);
-      }
+    // Climber
+    if (secondaryJoystick.getRawAxis(2) > .9) {
+      climberMotor.set(1);
+    } else if (secondaryJoystick.getRawAxis(3) > .9) {
+      climberMotor.set(-1);
+    } else {
+      climberMotor.set(0);
+    }
+    
+    // Climber Lock
+    if (secondaryJoystick.getPOV()==0) {
+      climberLockMotor.set(1);
+    } else {
+      climberLockMotor.set(0);
+    }
+    
 
-      // Conveyor
-      if(secondaryJoystick.getRawButton(3)){
-        conveyorMotor.set(VictorSPXControlMode.PercentOutput, .1);
-      } else if(secondaryJoystick.getRawButton(2)){
-        conveyorMotor.set(VictorSPXControlMode.PercentOutput, -.1);
-      } else {
-        conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0);
-      }
+    if (secondaryJoystick.getRawButton(2)) {
+      conveyorMotor.set(VictorSPXControlMode.PercentOutput, -.5);
+    }
 
-      // Intake
-      if(secondaryJoystick.getRawButton(6)){
-        intakeMotor.set(.5);
-      } else if(secondaryJoystick.getRawButton(1)){
-        intakeMotor.set(-.5);
-      } else {
-        intakeMotor.set(0);
-      }
+    // Limelight
+    if (secondaryJoystick.getRawButton(4)) {
+      Number targetOffsetAngle_Horizontal = limelightTable.getEntry("tx").getNumber(0);
 
-      // Climber
-      if(secondaryJoystick.getRawAxis(2) > .9){
-        climberMotor.set(1);
-      } else if (secondaryJoystick.getRawAxis(3) > .9){
-        climberMotor.set(-1);
-      } else {
-        climberMotor.set(0);
-      }
+      leftFrontMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());
+      leftRearMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());
+      rightFrontMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());
+      rightRearMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());   
     }
   }
 }
