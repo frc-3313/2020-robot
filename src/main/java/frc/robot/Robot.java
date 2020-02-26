@@ -134,13 +134,19 @@ public class Robot extends TimedRobot {
 
   @Override
   public void autonomousPeriodic() {
-    leftFrontMotor.set(-0.05);
-    leftRearMotor.set(-0.05);
-
-    rightFrontMotor.set(0.05);
-    rightRearMotor.set(0.05);
-
-    System.out.println(driveEncoder.getPosition());
+    if(driveEncoder.getPosition() < 12){
+      leftFrontMotor.set(0.05);
+      leftRearMotor.set(0.05);
+  
+      rightFrontMotor.set(-0.05);
+      rightRearMotor.set(-0.05);
+    } else {
+      leftFrontMotor.set(0);
+      leftRearMotor.set(0);
+  
+      rightFrontMotor.set(0);
+      rightRearMotor.set(0);
+    }
   }
 
   @Override
@@ -218,7 +224,7 @@ public class Robot extends TimedRobot {
     } else {
       climberMotor.set(0);
     }
-    
+
     // Climber Lock
     if (secondaryJoystick.getPOV()==0) {
       climberLockMotor.set(1);
