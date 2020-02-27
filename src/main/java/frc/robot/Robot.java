@@ -239,12 +239,15 @@ public class Robot extends TimedRobot {
 
     // Limelight
     if (secondaryJoystick.getRawButton(4)) {
+      limelightTable.getEntry("ledMode").setNumber(3);
       Number targetOffsetAngle_Horizontal = limelightTable.getEntry("tx").getNumber(0);
 
       leftFrontMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());
       leftRearMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());
       rightFrontMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());
       rightRearMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());   
+    } else {
+      limelightTable.getEntry("ledMode").setNumber(1);
     }
   }
 }
