@@ -51,6 +51,9 @@ public class Robot extends TimedRobot {
   private static final int leftFrontID = 53;
   private static final int rightFrontID = 54;
 
+  // Misc
+  private static final double autoDriveSpeed = 0.1;
+
   /*
    * Components
    */
@@ -89,6 +92,7 @@ public class Robot extends TimedRobot {
   // Misc
   int ticksToConveyorStop = 0;
   int currentStoredBalls = 0;
+  int ticksToShooterFullSpeed = -1;
   boolean updatedBallCount = false;
 
   @Override
@@ -135,11 +139,11 @@ public class Robot extends TimedRobot {
   @Override
   public void autonomousPeriodic() {
     if(driveEncoder.getPosition() < 12){
-      leftFrontMotor.set(0.05);
-      leftRearMotor.set(0.05);
+      leftFrontMotor.set(autoDriveSpeed);
+      leftRearMotor.set(autoDriveSpeed);
   
-      rightFrontMotor.set(-0.05);
-      rightRearMotor.set(-0.05);
+      rightFrontMotor.set(-autoDriveSpeed);
+      rightRearMotor.set(-autoDriveSpeed);
     } else {
       leftFrontMotor.set(0);
       leftRearMotor.set(0);
@@ -169,13 +173,21 @@ public class Robot extends TimedRobot {
     if (secondaryJoystick.getRawButton(1)) {
       rightShooterMotor.set(-.5);
       leftShooterMotor.set(.5);
-      conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0.4);
 
+      if(ticksToShooterFullSpeed == 0 ){
+        conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0.4);
+      } else if(ticksToShooterFullSpeed == -1){
+        ticksToShooterFullSpeed = 30;
+      } else {
+        ticksToShooterFullSpeed--;
+      }
+      
       currentStoredBalls = 0;
     } else {
       rightShooterMotor.set(0);
       leftShooterMotor.set(0);
       conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0);
+      ticksToShooterFullSpeed = -1;
     }
 
     // Intake
@@ -232,7 +244,6 @@ public class Robot extends TimedRobot {
       climberLockMotor.set(0);
     }
     
-
     if (secondaryJoystick.getRawButton(2)) {
       conveyorMotor.set(VictorSPXControlMode.PercentOutput, -.5);
     }
