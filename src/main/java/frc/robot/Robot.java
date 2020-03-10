@@ -153,6 +153,34 @@ public class Robot extends TimedRobot {
 
       rightFrontMotor.set(0);
       rightRearMotor.set(0);
+
+      limelightTable.getEntry("ledMode").setNumber(3);
+      Number targetOffsetAngle_Horizontal = limelightTable.getEntry("tx").getNumber(0);
+
+      if (Math.abs(targetOffsetAngle_Horizontal.doubleValue()) > .4) {
+        leftFrontMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());
+        leftRearMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());
+        rightFrontMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());
+        rightRearMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());
+      } else {
+        leftFrontMotor.set(0);
+        leftRearMotor.set(0);
+
+        rightFrontMotor.set(0);
+        rightRearMotor.set(0);
+
+        rightShooterMotor.set(-.65);
+        leftShooterMotor.set(.65);
+        intakeMotor.set(-.65);
+
+        if (ticksToShooterFullSpeed == 0) {
+          conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0.35);
+        } else if (ticksToShooterFullSpeed == -1) {
+          ticksToShooterFullSpeed = 60;
+        } else {
+          ticksToShooterFullSpeed--;
+        }
+      }
     }
   }
 
@@ -174,14 +202,14 @@ public class Robot extends TimedRobot {
 
     // Shooter
     if (secondaryJoystick.getRawButton(1)) {
-      rightShooterMotor.set(-.5);
-      leftShooterMotor.set(.5);
-      intakeMotor.set(.2);
+      rightShooterMotor.set(-.65);
+      leftShooterMotor.set(.65);
+      intakeMotor.set(-.65);
 
       if (ticksToShooterFullSpeed == 0) {
-        conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0.3);
+        conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0.35);
       } else if (ticksToShooterFullSpeed == -1) {
-        ticksToShooterFullSpeed = 30;
+        ticksToShooterFullSpeed = 60;
       } else {
         ticksToShooterFullSpeed--;
       }
@@ -229,10 +257,10 @@ public class Robot extends TimedRobot {
         conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0);
       }
     } else {
-      if(!secondaryJoystick.getRawButton(1)){
+      if (!secondaryJoystick.getRawButton(1)) {
         intakeMotor.set(0);
       }
-      
+
     }
 
     // Climber
