@@ -17,7 +17,6 @@ import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
-
 import com.ctre.phoenix.motorcontrol.VictorSPXControlMode;
 import com.ctre.phoenix.motorcontrol.can.VictorSPX;
 import com.revrobotics.CANEncoder;
@@ -51,9 +50,6 @@ public class Robot extends TimedRobot {
   private static final int leftFrontID = 53;
   private static final int rightFrontID = 54;
 
-  // Misc
-  private static final double autoDriveSpeed = 0.1;
-
   /*
    * Components
    */
@@ -63,7 +59,6 @@ public class Robot extends TimedRobot {
 
   // DIO
   private DigitalInput intakeSensor;
-  private DigitalInput climbPinSensor;
 
   // Motor Controllers
   private Talon intakeMotor;
@@ -93,9 +88,7 @@ public class Robot extends TimedRobot {
   // Misc
   int ticksToConveyorStop = 0;
   int currentStoredBalls = 0;
-  int ticksToShooterFullSpeed = -1;
   boolean updatedBallCount = false;
-  boolean climbLocked = false;
 
   @Override
   public void robotInit() {
@@ -105,7 +98,6 @@ public class Robot extends TimedRobot {
 
     // DIO
     intakeSensor = new DigitalInput(intakeSensorPort);
-    climbPinSensor = new DigitalInput(1);
 
     // Motor Controllers
     intakeMotor = new Talon(intakeMotorPort);
@@ -141,46 +133,18 @@ public class Robot extends TimedRobot {
 
   @Override
   public void autonomousPeriodic() {
-    if (driveEncoder.getPosition() < 12) {
-      leftFrontMotor.set(autoDriveSpeed);
-      leftRearMotor.set(autoDriveSpeed);
-
-      rightFrontMotor.set(-autoDriveSpeed);
-      rightRearMotor.set(-autoDriveSpeed);
+    if(driveEncoder.getPosition() < 12){
+      leftFrontMotor.set(0.05);
+      leftRearMotor.set(0.05);
+  
+      rightFrontMotor.set(-0.05);
+      rightRearMotor.set(-0.05);
     } else {
       leftFrontMotor.set(0);
       leftRearMotor.set(0);
-
+  
       rightFrontMotor.set(0);
       rightRearMotor.set(0);
-
-      limelightTable.getEntry("ledMode").setNumber(3);
-      Number targetOffsetAngle_Horizontal = limelightTable.getEntry("tx").getNumber(0);
-
-      if (Math.abs(targetOffsetAngle_Horizontal.doubleValue()) > .4) {
-        leftFrontMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());
-        leftRearMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());
-        rightFrontMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());
-        rightRearMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());
-      } else {
-        leftFrontMotor.set(0);
-        leftRearMotor.set(0);
-
-        rightFrontMotor.set(0);
-        rightRearMotor.set(0);
-
-        rightShooterMotor.set(-.65);
-        leftShooterMotor.set(.65);
-        intakeMotor.set(-.65);
-
-        if (ticksToShooterFullSpeed == 0) {
-          conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0.35);
-        } else if (ticksToShooterFullSpeed == -1) {
-          ticksToShooterFullSpeed = 60;
-        } else {
-          ticksToShooterFullSpeed--;
-        }
-      }
     }
   }
 
@@ -202,38 +166,36 @@ public class Robot extends TimedRobot {
 
     // Shooter
     if (secondaryJoystick.getRawButton(1)) {
-      rightShooterMotor.set(-.65);
-      leftShooterMotor.set(.65);
-      intakeMotor.set(-.65);
-
-      if (ticksToShooterFullSpeed == 0) {
-        conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0.35);
-      } else if (ticksToShooterFullSpeed == -1) {
-        ticksToShooterFullSpeed = 60;
-      } else {
-        ticksToShooterFullSpeed--;
-      }
-
-      currentStoredBalls = 0;
+      rightShooterMotor.set(-.52);
+      leftShooterMotor.set(.53);
     } else {
       rightShooterMotor.set(0);
       leftShooterMotor.set(0);
-      conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0);
-      ticksToShooterFullSpeed = -1;
+         currentStoredBalls = 0;
     }
+    if (secondaryJoystick.getRawButton(3)) {
+        conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0.4);
+    }else{
+      conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0);
+    
+    }
+
+     
+    
 
     // Intake
     if (secondaryJoystick.getRawButton(5)) {
       intakeMotor.set(.5);
+    
     } else if (secondaryJoystick.getRawButton(6)) {
       if (intakeSensor.get()) {
         ticksToConveyorStop = 2;
         intakeMotor.set(0);
-
-        if (currentStoredBalls == 3) {
+        conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0.4);
+        if(currentStoredBalls == 3){
           ticksToConveyorStop = 1;
         } else {
-          if (!updatedBallCount) {
+          if(!updatedBallCount){
             currentStoredBalls++;
             updatedBallCount = true;
           }
@@ -242,7 +204,7 @@ public class Robot extends TimedRobot {
         conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0);
         updatedBallCount = false;
 
-        if (currentStoredBalls == 3) {
+        if(currentStoredBalls == 3){
           intakeMotor.set(0);
         } else {
           intakeMotor.set(-.5);
@@ -257,28 +219,25 @@ public class Robot extends TimedRobot {
         conveyorMotor.set(VictorSPXControlMode.PercentOutput, 0);
       }
     } else {
-      if (!secondaryJoystick.getRawButton(1)) {
-        intakeMotor.set(0);
-      }
-
+      intakeMotor.set(0);
     }
 
     // Climber
-    if (secondaryJoystick.getRawAxis(2) > .9 && !climbLocked) {
+    if (secondaryJoystick.getRawAxis(2) > .9) {
       climberMotor.set(1);
-    } else if (secondaryJoystick.getRawAxis(3) > .9 && !climbLocked) {
+    } else if (secondaryJoystick.getRawAxis(3) > .9) {
       climberMotor.set(-1);
     } else {
       climberMotor.set(0);
     }
 
     // Climber Lock
-    if (secondaryJoystick.getPOV() == 0) {
+    if (secondaryJoystick.getPOV()==0) {
       climberLockMotor.set(1);
-      climbLocked = true;
     } else {
       climberLockMotor.set(0);
     }
+    
 
     if (secondaryJoystick.getRawButton(2)) {
       conveyorMotor.set(VictorSPXControlMode.PercentOutput, -.5);
@@ -292,7 +251,7 @@ public class Robot extends TimedRobot {
       leftFrontMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());
       leftRearMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());
       rightFrontMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());
-      rightRearMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());
+      rightRearMotor.set(0.01 * targetOffsetAngle_Horizontal.doubleValue());   
     } else {
       limelightTable.getEntry("ledMode").setNumber(1);
     }
